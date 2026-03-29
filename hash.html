@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hash Table Simulator</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0b0e1a; --card: #111827; --border: #1e2d45;
+      --primary: #7c5cfa; --accent: #06d6f5; --muted: #6b7a99;
+      --text: #f0f4ff; --destructive: #f43f5e; --orange: #fb923c; --green: #34d399;
+    }
+    body {
+      font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100vh; overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 15% 50%, rgba(100,50,255,0.06), transparent 30%),
+        radial-gradient(circle at 85% 30%, rgba(0,200,255,0.05), transparent 30%);
+    }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #1e2d45; border-radius: 4px; }
+    .page { display: flex; flex-direction: column; min-height: 100vh; }
+    header {
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      background: rgba(11,14,26,0.85); backdrop-filter: blur(16px);
+      padding: 0 24px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; }
+    .logo-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .logo span { color: var(--primary); }
+    .tag {
+      font-family: 'Fira Code', monospace; font-size: 11px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      padding: 4px 12px; border-radius: 999px; color: var(--muted);
+    }
+    main { flex: 1; max-width: 1100px; margin: 0 auto; padding: 40px 24px 32px; width: 100%; }
+    h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 800; line-height: 1.15; margin-bottom: 10px; }
+    .gradient-text {
+      background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary));
+      background-size: 200% auto; -webkit-background-clip: text; background-clip: text;
+      color: transparent; animation: grad 4s linear infinite;
+    }
+    @keyframes grad { 0%,100%{background-position:0%} 50%{background-position:100%} }
+    .subtitle { color: var(--muted); font-size: 15px; max-width: 520px; line-height: 1.6; margin-bottom: 36px; }
+    .subtitle strong { color: rgba(240,244,255,0.85); font-weight: 600; }
+    .method-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 24px; }
+    @media(min-width:600px){ .method-grid{ grid-template-columns: repeat(4,1fr); } }
+    .method-btn {
+      border-radius: 12px; padding: 12px; text-align: left;
+      border: 2px solid var(--border); background: rgba(255,255,255,0.03);
+      cursor: pointer; transition: all 0.2s; color: var(--muted);
+    }
+    .method-btn:hover { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: var(--text); }
+    .method-btn .m-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .method-btn .m-formula { font-family: 'Fira Code', monospace; font-size: 9px; color: var(--muted); line-height: 1.4; }
+    .sim-layout { display: flex; flex-direction: column; gap: 20px; }
+    @media(min-width:900px){ .sim-layout{ flex-direction: row; } }
+    .left-panel { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+    @media(min-width:900px){ .left-panel{ width: 272px; flex-shrink: 0; } }
+    .glass {
+      background: rgba(17,24,39,0.7); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    .method-desc { padding: 14px 16px; border-left: 4px solid var(--primary); }
+    .method-desc .d-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+    .method-desc .d-text { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .method-desc .d-formula {
+      font-family: 'Fira Code', monospace; font-size: 10px; background: rgba(0,0,0,0.3);
+      padding: 4px 8px; border-radius: 6px; color: rgba(240,244,255,0.5);
+      margin-top: 8px; display: inline-block;
+    }
+    .controls { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .ctrl-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing:.1em; display: block; margin-bottom: 8px; }
+    .size-row { display: flex; gap: 8px; }
+    .size-btn {
+      flex: 1; padding: 8px 0; border-radius: 8px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04); font-family: 'Fira Code', monospace;
+      font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.2s;
+    }
+    .size-btn:hover { border-color: rgba(124,92,250,0.4); color: var(--text); }
+    .size-btn.active { background: var(--primary); border-color: var(--primary); color:#fff; box-shadow: 0 0 12px rgba(124,92,250,0.4); }
+    .insert-row { display: flex; gap: 8px; }
+    input[type=number] {
+      flex: 1; padding: 10px 12px; border-radius: 8px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      color: var(--text); font-size: 15px; font-family: 'Fira Code', monospace;
+      outline: none; transition: border 0.2s; min-width: 0;
+    }
+    input[type=number]:focus { border-color: var(--primary); }
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .btn-go {
+      padding: 10px 18px; border-radius: 8px; border: none;
+      background: var(--primary); color: #fff; font-weight: 700;
+      font-size: 14px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .btn-go:hover { background: #6a48e8; box-shadow: 0 0 16px rgba(124,92,250,0.5); }
+    .btn-go:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-row { display: flex; gap: 8px; }
+    .btn-secondary {
+      flex: 1; padding: 9px 12px; border-radius: 8px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      color: var(--text); font-size: 13px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all 0.2s; font-family: 'Outfit', sans-serif; font-weight: 500;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+    .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-icon {
+      padding: 9px 13px; border-radius: 8px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      color: var(--muted); cursor: pointer; transition: all 0.2s; font-size: 14px;
+    }
+    .btn-icon:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+    .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .stat-card { padding: 12px 8px; text-align: center; }
+    .stat-val { font-family: 'Fira Code', monospace; font-size: 22px; font-weight: 700; }
+    .stat-key { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing:.1em; margin-top: 4px; }
+    .pigeon-alert {
+      padding: 12px 14px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(244,63,94,0.15), rgba(251,146,60,0.08));
+      border: 1px solid rgba(244,63,94,0.35); display: flex; gap: 10px; align-items: flex-start;
+      animation: fadeIn 0.3s ease;
+    }
+    .pigeon-title { font-weight: 700; font-size: 13px; color: #fbbf24; }
+    .pigeon-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .right-panel { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+    .step-bar {
+      padding: 12px 16px; border-radius: 12px; display: flex; align-items: center; gap: 12px;
+      font-size: 13px; animation: fadeIn 0.25s ease;
+    }
+    .step-bar.success   { background: rgba(6,214,245,0.08);   border: 1px solid rgba(6,214,245,0.3);   color: var(--accent); }
+    .step-bar.collision { background: rgba(244,63,94,0.08);   border: 1px solid rgba(244,63,94,0.3);   color: #fca5a5; }
+    .step-bar.hint      { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); color: var(--muted); }
+    .step-icon { font-size: 16px; flex-shrink: 0; }
+    .step-key  { font-weight: 700; }
+    .step-calc { font-family: 'Fira Code', monospace; font-size: 11px; opacity: 0.75; }
+    .step-extra { font-size: 11px; opacity: 0.6; }
+    .table-panel { padding: 20px; flex: 1; }
+    .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+    .table-formula { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--muted); }
+    .table-formula b { color: var(--text); }
+    .legend { display: flex; gap: 12px; font-size: 11px; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+    .slots-grid { display: grid; gap: 10px; }
+    .slot-cell {
+      border-radius: 10px; border: 2px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.02); min-height: 60px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; transition: all 0.25s ease; overflow: visible; padding: 4px;
+    }
+    .slot-cell.highlighted { border-color: var(--accent);        background: rgba(6,214,245,0.12);   box-shadow: 0 0 20px rgba(6,214,245,0.3); }
+    .slot-cell.probing     { border-color: var(--orange);        background: rgba(251,146,60,0.1);    box-shadow: 0 0 14px rgba(251,146,60,0.25); }
+    .slot-cell.filled      { border-color: rgba(124,92,250,0.6); background: rgba(124,92,250,0.1); }
+    .slot-cell.chained     { border-color: var(--destructive);   background: rgba(244,63,94,0.12); }
+    .slot-idx { position: absolute; top: 4px; left: 6px; font-size: 9px; font-family: 'Fira Code', monospace; color: rgba(255,255,255,0.25); }
+    .slot-empty { font-size: 11px; color: rgba(255,255,255,0.15); }
+    .slot-val { font-family: 'Fira Code', monospace; font-size: 17px; font-weight: 700; color: #fff; }
+    .chain-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 20px 4px 4px; width: 100%; }
+    .chain-key {
+      width: 100%; text-align: center; border-radius: 4px;
+      font-family: 'Fira Code', monospace; font-size: 11px; font-weight: 700; padding: 2px 4px;
+    }
+    .chain-key.first { background: rgba(124,92,250,0.3); color: #fff; }
+    .chain-key.extra { background: rgba(244,63,94,0.3);  color: #fca5a5; }
+    .collision-badge {
+      position: absolute; top: -8px; right: -8px;
+      width: 18px; height: 18px; background: var(--destructive); border-radius: 50%;
+      font-size: 9px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 8px rgba(244,63,94,0.5); border: 1px solid rgba(244,63,94,0.6);
+    }
+    .log-panel { padding: 14px 16px; max-height: 148px; overflow-y: auto; }
+    .log-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing:.1em; margin-bottom: 8px; }
+    .log-empty { font-size: 12px; color: rgba(255,255,255,0.2); font-style: italic; }
+    .log-entry {
+      display: flex; align-items: baseline; gap: 8px;
+      font-family: 'Fira Code', monospace; font-size: 11px; margin-bottom: 4px;
+      animation: slideIn 0.2s ease;
+    }
+    .log-entry.success   { color: var(--green); }
+    .log-entry.collision { color: var(--destructive); }
+    .log-entry.probe     { color: rgba(251,146,60,0.7); }
+    .log-entry.info      { color: var(--muted); }
+    .log-sub { opacity: 0.5; font-size: 10px; }
+    footer { border-top: 1px solid rgba(255,255,255,0.04); padding: 14px 24px; }
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; color: rgba(255,255,255,0.2);
+    }
+    .footer-inner span:last-child { font-family: 'Fira Code', monospace; }
+    @keyframes fadeIn  { from{opacity:0;transform:scale(0.97)} to{opacity:1;transform:scale(1)} }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const METHODS = {
+  chaining:  { label:'Chaining',          formula:'index = key % size',                color:'#818cf8', desc:'Multiple keys stored at same index via linked list.' },
+  linear:    { label:'Linear Probing',    formula:'index = (key % size + i) % size',   color:'#34d399', desc:'Next empty slot found by stepping +1 each time.' },
+  quadratic: { label:'Quadratic Probing', formula:'index = (key % size + i^2) % size', color:'#fb923c', desc:'Steps grow quadratically (1,4,9...) reducing clustering.' },
+  double:    { label:'Double Hashing',    formula:'index = (h1(k) + i*h2(k)) % size',  color:'#e879f9', desc:'Second hash sets step size for better distribution.' },
+};
+
+function secondHash(key, size) {
+  const p = size > 2 ? size - 1 : 1;
+  return (p - (key % p)) || 1;
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+let lid = 0;
+
+function App() {
+  const [tableSize, setTableSize]   = useState(10);
+  const [method, setMethod]         = useState('chaining');
+  const [slots, setSlots]           = useState([]);
+  const [input, setInput]           = useState('');
+  const [collisions, setCollisions] = useState(0);
+  const [totalKeys, setTotalKeys]   = useState(0);
+  const [logs, setLogs]             = useState([]);
+  const [busy, setBusy]             = useState(false);
+  const [step, setStep]             = useState(null);
+  const slotsRef = useRef(slots);
+  slotsRef.current = slots;
+
+  useEffect(() => { reset(); }, [tableSize, method]);
+
+  function reset() {
+    setSlots(Array.from({ length: tableSize }, (_, i) => ({ index:i, entries:[], hi:false, probe:false })));
+    setCollisions(0); setTotalKeys(0); setLogs([]); setStep(null); setInput('');
+  }
+
+  function pushLog(type, message, sub) {
+    setLogs(prev => [{ id: ++lid, type, message, sub }, ...prev].slice(0, 20));
+  }
+
+  function setHL(indices, isProbe = false) {
+    setSlots(prev => prev.map(s => ({
+      ...s, hi: !isProbe && indices.includes(s.index), probe: isProbe && indices.includes(s.index),
+    })));
+  }
+
+  function clearHL() { setSlots(prev => prev.map(s => ({ ...s, hi:false, probe:false }))); }
+
+  async function doInsert(e) {
+    if (e) e.preventDefault();
+    const val = parseInt(input);
+    if (isNaN(val)) return;
+    setInput(''); setBusy(true);
+
+    const base = val % tableSize;
+    pushLog('info', 'hash(' + val + ')', val + ' % ' + tableSize + ' = ' + base);
+    setHL([base]); await sleep(500);
+
+    const cur = slotsRef.current;
+
+    if (method === 'chaining') {
+      const isCol = cur[base].entries.length > 0;
+      setSlots(prev => prev.map(s => s.index === base ? { ...s, entries:[...s.entries,{key:val}], hi:true } : s));
+      await sleep(350);
+      setSlots(prev => prev.map(s => ({ ...s, hi:false })));
+      if (isCol) {
+        setCollisions(c => c + 1);
+        pushLog('collision', 'Collision at [' + base + ']', 'Key ' + val + ' chained at [' + base + ']');
+        setStep({ key:val, base, calc: val + ' % ' + tableSize + ' = ' + base, result:'collision' });
+      } else {
+        pushLog('success', 'Inserted ' + val + ' -> [' + base + ']', 'hash(' + val + ') = ' + base);
+        setStep({ key:val, base, calc: val + ' % ' + tableSize + ' = ' + base, result:'inserted' });
+      }
+      setTotalKeys(t => t + 1);
+    } else {
+      let resolved = -1, hadCol = false;
+      for (let i = 0; i < tableSize; i++) {
+        let probe;
+        if (method === 'linear')         probe = (base + i) % tableSize;
+        else if (method === 'quadratic') probe = (base + i * i) % tableSize;
+        else                             probe = (base + i * secondHash(val, tableSize)) % tableSize;
+
+        if (i > 0) {
+          pushLog('probe', 'Probe [' + probe + ']', 'i=' + i);
+          setHL([probe], true); await sleep(350); hadCol = true;
+        }
+        if (cur[probe].entries.length === 0) { resolved = probe; break; }
+      }
+      if (resolved === -1) {
+        pushLog('collision', 'Table full!', 'Cannot insert ' + val);
+        clearHL(); setBusy(false); return;
+      }
+      if (hadCol) setCollisions(c => c + 1);
+      setHL([resolved]); await sleep(300);
+      setSlots(prev => prev.map(s =>
+        s.index === resolved ? { ...s, entries:[{key:val}], hi:true, probe:false } : { ...s, probe:false }
+      ));
+      await sleep(300);
+      setSlots(prev => prev.map(s => ({ ...s, hi:false })));
+      setTotalKeys(t => t + 1);
+      if (hadCol) {
+        pushLog('collision', 'Resolved -> [' + resolved + ']', 'Key ' + val + ' at [' + resolved + ']');
+        setStep({ key:val, base, calc: val + ' % ' + tableSize + ' = ' + base, result:'probed', resolved });
+      } else {
+        pushLog('success', 'Inserted ' + val + ' -> [' + resolved + ']', 'hash(' + val + ') = ' + resolved);
+        setStep({ key:val, base, calc: val + ' % ' + tableSize + ' = ' + base, result:'inserted' });
+      }
+    }
+    clearHL(); setBusy(false);
+  }
+
+  function doRandom() {
+    const v = Math.floor(Math.random() * 999) + 1;
+    setInput(v.toString());
+    setTimeout(() => document.getElementById('ins-form')?.requestSubmit(), 60);
+  }
+
+  const filled = slots.filter(s => s.entries.length > 0).length;
+  const info   = METHODS[method];
+  const pigeon = totalKeys > tableSize;
+  const cols   = tableSize <= 7 ? tableSize : Math.min(tableSize, 10);
+
+  return (
+    <div className="page">
+      <header>
+        <div className="logo">
+          <div className="logo-icon">&#x2B21;</div>
+          Hash<span>Sim</span>
+        </div>
+        <span className="tag">Pigeonhole Principle &#8594; Hashing</span>
+      </header>
+
+      <main>
+        <h1>Hash Table <span className="gradient-text">Simulator</span></h1>
+        <p className="subtitle">
+          Insert keys, watch the hash function in action, and see the{' '}
+          <strong>Pigeonhole Principle</strong> cause collisions.
+          Switch between four resolution strategies.
+        </p>
+
+        <div className="method-grid">
+          {Object.entries(METHODS).map(([m, inf]) => (
+            <button key={m}
+              className={'method-btn' + (method===m?' active':'')}
+              style={method===m ? {borderColor:inf.color, background:'rgba(124,92,250,0.1)'} : {}}
+              onClick={() => setMethod(m)} disabled={busy}>
+              <div className="m-label" style={method===m ? {color:inf.color} : {}}>{inf.label}</div>
+              <div className="m-formula">{inf.formula}</div>
+            </button>
+          ))}
+        </div>
+
+        <div className="sim-layout">
+          <div className="left-panel">
+            <div className="glass method-desc" style={{ borderLeftColor: info.color }}>
+              <div className="d-title" style={{ color: info.color }}>{info.label}</div>
+              <div className="d-text">{info.desc}</div>
+              <div className="d-formula">{info.formula}</div>
+            </div>
+
+            <div className="glass controls">
+              <div>
+                <span className="ctrl-label">Table Size (m)</span>
+                <div className="size-row">
+                  {[5,7,10,13].map(s => (
+                    <button key={s} className={'size-btn'+(tableSize===s?' active':'')}
+                      onClick={() => setTableSize(s)} disabled={busy}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <form id="ins-form" onSubmit={doInsert}>
+                <span className="ctrl-label">Insert Key (n)</span>
+                <div className="insert-row">
+                  <input type="number" value={input} onChange={e => setInput(e.target.value)}
+                    placeholder="e.g. 42" disabled={busy} min={0} max={9999} />
+                  <button type="submit" className="btn-go" disabled={busy || !input}>
+                    &#9654; Go
+                  </button>
+                </div>
+              </form>
+              <div className="btn-row">
+                <button className="btn-secondary" onClick={doRandom} disabled={busy}>&#8644; Random</button>
+                <button className="btn-icon" onClick={reset} disabled={busy}>&#8635;</button>
+              </div>
+            </div>
+
+            <div className="stats-row">
+              {[
+                { label:'Keys',       val:totalKeys,               color:'#fff' },
+                { label:'Slots',      val:filled+'/'+tableSize,    color:'#06d6f5' },
+                { label:'Collisions', val:collisions,              color:collisions>0?'#f43f5e':'#6b7a99' },
+              ].map(s => (
+                <div key={s.label} className="glass stat-card">
+                  <div className="stat-val" style={{color:s.color}}>{s.val}</div>
+                  <div className="stat-key">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {pigeon && (
+              <div className="glass pigeon-alert">
+                <span style={{fontSize:18}}>&#9888;</span>
+                <div>
+                  <div className="pigeon-title">Pigeonhole Active!</div>
+                  <div className="pigeon-sub">Keys ({totalKeys}) &gt; Slots ({tableSize}) — collisions guaranteed.</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="right-panel">
+            {step ? (
+              <div className={'step-bar '+(step.result==='inserted'?'success':'collision')}>
+                <span className="step-icon">{step.result==='inserted' ? '✓' : '⚡'}</span>
+                <div className="step-text">
+                  <span className="step-key">Key {step.key}</span>
+                  <span style={{margin:'0 8px',opacity:.3}}>·</span>
+                  <span className="step-calc">{step.calc}</span>
+                  {step.result==='probed'    && <span className="step-extra"> → collision at [{step.base}] → resolved to [{step.resolved}]</span>}
+                  {step.result==='collision' && method==='chaining' && <span className="step-extra"> → chained at [{step.base}]</span>}
+                  {step.result==='inserted'  && <span className="step-extra"> → stored at [{step.base}]</span>}
+                </div>
+              </div>
+            ) : (
+              <div className="step-bar hint">
+                <span className="step-icon">&#9432;</span>
+                <span>Enter a key and press Go. Watch the hash calculation animate live.</span>
+              </div>
+            )}
+
+            <div className="glass table-panel">
+              <div className="table-header">
+                <div className="table-formula">hash(key) = key % <b>{tableSize}</b></div>
+                <div className="legend">
+                  <span><span className="legend-dot" style={{background:'rgba(124,92,250,0.5)',border:'1px solid #7c5cfa'}}></span>Filled</span>
+                  <span><span className="legend-dot" style={{background:'rgba(244,63,94,0.5)',border:'1px solid #f43f5e'}}></span>Collision</span>
+                  <span><span className="legend-dot" style={{background:'rgba(6,214,245,0.5)',border:'1px solid #06d6f5'}}></span>Probing</span>
+                </div>
+              </div>
+              <div className="slots-grid" style={{gridTemplateColumns:'repeat('+cols+',1fr)'}}>
+                {slots.map(slot => {
+                  const empty   = slot.entries.length === 0;
+                  const chained = method==='chaining' && slot.entries.length > 1;
+                  let cls = 'slot-cell';
+                  if      (slot.hi)    cls += ' highlighted';
+                  else if (slot.probe) cls += ' probing';
+                  else if (chained)    cls += ' chained';
+                  else if (!empty)     cls += ' filled';
+                  const cellH = method==='chaining' ? Math.max(60, 36+slot.entries.length*22) : 60;
+
+                  return (
+                    <div key={slot.index} className={cls} style={{minHeight:cellH}}>
+                      <span className="slot-idx">{slot.index}</span>
+                      {method==='chaining' ? (
+                        <div className="chain-wrap">
+                          {empty
+                            ? <span className="slot-empty">—</span>
+                            : slot.entries.map((e,i) => (
+                              <span key={slot.index+'-'+e.key+'-'+i} className={'chain-key '+(i===0?'first':'extra')}>{e.key}</span>
+                            ))
+                          }
+                        </div>
+                      ) : (
+                        empty
+                          ? <span className="slot-empty">—</span>
+                          : <span className="slot-val">{slot.entries[0]?.key}</span>
+                      )}
+                      {chained && <div className="collision-badge">{slot.entries.length}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="glass log-panel">
+              <div className="log-title">Execution Log</div>
+              {logs.length===0
+                ? <div className="log-empty">No operations yet...</div>
+                : logs.map(l => (
+                  <div key={l.id} className={'log-entry '+l.type}>
+                    <span>{l.type==='collision'?'✕':l.type==='success'?'✓':l.type==='probe'?'→':'·'}</span>
+                    <span>{l.message}</span>
+                    {l.sub && <span className="log-sub">{l.sub}</span>}
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <div className="footer-inner">
+          <span>Hashing &amp; Pigeonhole Principle Simulation</span>
+          <span>index = key % tableSize</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
