@@ -222,9 +222,8 @@ const METHODS = {
   quadratic: { label:'Quadratic Probing', formula:'index = (key % size + i^2) % size', color:'#fb923c', desc:'Steps grow quadratically (1,4,9...) reducing clustering.' },
   double:    { label:'Double Hashing',    formula:'index = (h1(k) + i*h2(k)) % size',  color:'#e879f9', desc:'Second hash sets step size for better distribution.' },
 };
-
 function secondHash(key, size) {
-  if (size <= 1) return 1;   // safety
+  if (!size || size <= 1) return 1;   // prevents crash
   return 1 + (key % (size - 1));
 }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -292,6 +291,16 @@ function App() {
     } else {
       let resolved = -1, hadCol = false;
       for (let i = 0; i < tableSize; i++) {
+  let probe;
+
+  if (method === 'double') {
+    if (i === 0) {
+      probe = base;   // first attempt
+    } else {
+      const h2 = secondHash(val, tableSize);
+      probe = (base + i * h2) % tableSize;
+    }
+  }
         let probe;
         if (method === 'linear')         probe = (base + i) % tableSize;
         else if (method === 'quadratic') probe = (base + i * i) % tableSize;
