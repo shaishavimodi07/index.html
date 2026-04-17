@@ -224,6 +224,7 @@ const METHODS = {
 };
 
 function secondHash(key, size) {
+  if (size <= 1) return 1;   // safety
   return 1 + (key % (size - 1));
 }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
