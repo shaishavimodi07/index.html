@@ -223,8 +223,8 @@ const METHODS = {
   double:    { label:'Double Hashing',    formula:'index = (h1(k) + i*h2(k)) % size',  color:'#e879f9', desc:'Second hash sets step size for better distribution.' },
 };
 function secondHash(key, size) {
-  if (!size || size <= 1) return 1;   // prevents crash
-  return 1 + (key % (size - 1));
+  const p = size > 2 ? size - 1 : 1;
+  return (p - (key % p)) || 1;
 }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -291,16 +291,6 @@ function App() {
     } else {
       let resolved = -1, hadCol = false;
       for (let i = 0; i < tableSize; i++) {
-  let probe;
-
-  if (method === 'double') {
-    if (i === 0) {
-      probe = base;   // first attempt
-    } else {
-      const h2 = secondHash(val, tableSize);
-      probe = (base + i * h2) % tableSize;
-    }
-  }
         let probe;
         if (method === 'linear')         probe = (base + i) % tableSize;
         else if (method === 'quadratic') probe = (base + i * i) % tableSize;
