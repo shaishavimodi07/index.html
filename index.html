@@ -224,8 +224,8 @@ const METHODS = {
 };
 
 function secondHash(key, size) {
-  const p = size > 2 ? size - 1 : 1;
-  return (p - (key % p)) || 1;
+  return 1 + (key % (size - 1));
+}
 }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
